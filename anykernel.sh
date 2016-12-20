@@ -3,19 +3,21 @@
 
 ## AnyKernel setup
 # EDIFY properties
-kernel.string=DirtyV by bsmitty83 @ xda-developers
+kernel.string=
 do.devicecheck=1
-do.initd=1
+do.initd=0
 do.modules=0
 do.cleanup=1
-device.name1=maguro
-device.name2=toro
-device.name3=toroplus
-device.name4=
-device.name5=
+do.bb=0
+do_310_fixes=0
+device.name1=A0001
+device.name2=bacon
+device.name3=One A0001
+device.name4=One
+device.name5=OnePlus
 
 # shell variables
-block=/dev/block/platform/omap/omap_hsmmc.0/by-name/boot;
+block=/dev/block/platform/msm_sdcc.1/by-name/boot;
 is_slot_device=0;
 
 
@@ -27,42 +29,90 @@ is_slot_device=0;
 ## AnyKernel permissions
 # set permissions for included ramdisk files
 chmod -R 755 $ramdisk
-chmod 644 $ramdisk/sbin/media_profiles.xml
 
 
 ## AnyKernel install
 dump_boot;
 
-# begin ramdisk changes
+if [ $do_310_fixes == 1 ]; then
+### 3.10 ramdisk fixes (works only in d0a4383 osm0sis anykernel2 and newer)
 
-# init.rc
-backup_file init.rc;
-replace_string init.rc "cpuctl cpu,timer_slack" "mount cgroup none /dev/cpuctl cpu" "mount cgroup none /dev/cpuctl cpu,timer_slack";
-append_file init.rc "run-parts" init;
+## fstab
 
-# init.tuna.rc
-backup_file init.tuna.rc;
-insert_line init.tuna.rc "nodiratime barrier=0" after "mount_all /fstab.tuna" "\tmount ext4 /dev/block/platform/omap/omap_hsmmc.0/by-name/userdata /data remount nosuid nodev noatime nodiratime barrier=0";
-append_file init.tuna.rc "dvbootscript" init.tuna;
-
-# init.superuser.rc
-if [ -f init.superuser.rc ]; then
-  backup_file init.superuser.rc;
-  replace_string init.superuser.rc "Superuser su_daemon" "# su daemon" "\n# Superuser su_daemon";
-  prepend_file init.superuser.rc "SuperSU daemonsu" init.superuser;
-else
-  replace_file init.superuser.rc 750 init.superuser.rc;
-  insert_line init.rc "init.superuser.rc" after "on post-fs-data" "    import /init.superuser.rc";
+if [ -f fstab.bacon ]; then
+  fstab="fstab.bacon";
+  if [ -z "$(grep -o 'f2fs    nosuid' $fstab)" ]; then
+    backup_file $fstab;
+  fi;
+elif [ -f fstab.qcom ]; then
+  fstab="fstab.qcom";
+  if [ -z "$(grep -o 'f2fs    nosuid' $fstab)" ]; then
+    backup_file $fstab;
+  fi;
 fi;
 
-# fstab.tuna
-backup_file fstab.tuna;
-patch_fstab fstab.tuna /system ext4 options "nodiratime,barrier=0" "nodev,noatime,nodiratime,barrier=0,data=writeback,noauto_da_alloc,discard";
-patch_fstab fstab.tuna /cache ext4 options "barrier=0,nomblk_io_submit" "nosuid,nodev,noatime,nodiratime,errors=panic,barrier=0,nomblk_io_submit,data=writeback,noauto_da_alloc";
-patch_fstab fstab.tuna /data ext4 options "nomblk_io_submit,data=writeback" "nosuid,nodev,noatime,errors=panic,nomblk_io_submit,data=writeback,noauto_da_alloc";
-append_file fstab.tuna "usbdisk" fstab;
+# apply fstab changes
 
-# end ramdisk changes
+if [ -n $fstab ]; then
+  replace_string $fstab "/dev/block/platform/msm_sdcc.1/by-name/userdata     /data           f2fs    nosuid" "/dev/block/platform/msm_sdcc.1/by-name/userdata     /data           f2fs    noatime,nosuid" "/dev/block/platform/msm_sdcc.1/by-name/userdata     /data           f2fs    nosuid";
+  replace_string $fstab "/dev/block/platform/msm_sdcc.1/by-name/cache        /cache          f2fs    nosuid" "/dev/block/platform/msm_sdcc.1/by-name/cache        /cache          f2fs    noatime,nosuid" "/dev/block/platform/msm_sdcc.1/by-name/cache        /cache          f2fs    nosuid";
+fi;
+
+## init.recovery.bacon.rc
+
+if [ -f init.recovery.bacon.rc ]; then
+  qcomrecovery="init.recovery.bacon.rc";
+  if [ -z "$(grep -o 'cpubw.47' $qcomrecovery)" ]; then
+    backup_file $qcomrecovery;
+  fi;
+fi;
+
+# apply init.recovery.bacon.rc changes
+
+if [ -n $qcomrecovery ]; then
+  replace_string $qcomrecovery "cpubw.47" "cpubw.40" "cpubw.47";
+fi;
+
+## init.qcom.power.rc 
+
+if [ -f init.qcom.power.rc ]; then
+  qcompower="init.qcom.power.rc";
+  if [ -z "$(grep -o 'cpubw.47' $qcompower)" ]; then
+    backup_file $qcompower;
+  fi;
+fi;
+
+# apply init.qcom.power.rc changes 
+if [ -n $qcompower ]; then
+  replace_string $qcompower "cpubw.47" "cpubw.40" "cpubw.47";
+fi;
+
+## init.bacon.rc
+
+if [ -f init.bacon.rc ]; then
+  qcomdevice="init.bacon.rc";
+  if [ -z "$(grep -o 'group gps inet' $qcomdevice)" ]; then
+    backup_file $qcomdevice;
+  fi;
+elif [ -f init.oppo.common.rc ]; then
+  qcomdevice="init.oppo.common.rc";
+  if [ -z "$(grep -o 'group gps inet' $qcomdevice)" ]; then
+    backup_file $qcomdevice;
+  fi;
+fi;
+
+# apply init.bacon.rc changes
+
+if [ -n $qcomdevice ]; then
+  replace_string $qcomdevice "group gps inet" "group gps qcom_oncrpc inet" "group gps inet";
+  if [[ -z "$(grep -o 'group radio system' $qcomdevice)" && -z "$(grep -o 'service qmuxd /system/bin/qmuxd\n    class main\n    user root' $qcomdevice)" ]]; then
+    replace_section $qcomdevice "service netmgrd /system/bin/netmgrd" "group radio" "service netmgrd /system/bin/netmgrd\n    class main\n    user root\n    group radio system";
+    replace_section $qcomdevice "service qmuxd /system/bin/qmuxd" "user radio" "service qmuxd /system/bin/qmuxd\n    class main\n    user root";
+  fi;
+fi;
+
+### 3.10 ramdisk fixes (works only in d0a4383 osm0sis anykernel2 and newer)
+fi;
 
 write_boot;
 
