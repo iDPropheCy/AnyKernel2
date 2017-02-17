@@ -56,6 +56,8 @@ fi;
 if [ -n $fstab ]; then
   replace_string $fstab "/dev/block/platform/msm_sdcc.1/by-name/userdata     /data           f2fs    nosuid" "/dev/block/platform/msm_sdcc.1/by-name/userdata     /data           f2fs    noatime,nosuid" "/dev/block/platform/msm_sdcc.1/by-name/userdata     /data           f2fs    nosuid";
   replace_string $fstab "/dev/block/platform/msm_sdcc.1/by-name/cache        /cache          f2fs    nosuid" "/dev/block/platform/msm_sdcc.1/by-name/cache        /cache          f2fs    noatime,nosuid" "/dev/block/platform/msm_sdcc.1/by-name/cache        /cache          f2fs    nosuid";
+  replace_string $fstab "/devices/*/xhci-hcd.0.auto/usb" "/devices/platform/xhci-hcd" "/devices/*/xhci-hcd.0.auto/usb";
+  replace_string $fstab "voldmanaged=usb:auto" "voldmanaged=usbdisk:auto" "voldmanaged=usb:auto";
 fi;
 
 ## init.recovery.bacon.rc
