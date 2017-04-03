@@ -5,9 +5,9 @@
 # EDIFY properties
 kernel.string=
 do.devicecheck=1
-do.initd=0
 do.modules=0
 do.cleanup=1
+do.cleanuponabort=0
 do.bb=0
 do_310_fixes=0
 device.name1=A0001
