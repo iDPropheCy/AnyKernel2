@@ -2,7 +2,8 @@
 # osm0sis @ xda-developers
 
 ## AnyKernel setup
-# EDIFY properties
+# begin properties
+properties() {
 kernel.string=
 do.devicecheck=1
 do.modules=0
@@ -15,6 +16,7 @@ device.name2=bacon
 device.name3=One A0001
 device.name4=One
 device.name5=OnePlus
+} # end properties
 
 # shell variables
 block=/dev/block/platform/msm_sdcc.1/by-name/boot;
